@@ -10,3 +10,11 @@ CREATE TABLE users (
     first_name VARCHAR(30) NOT NULL,
     last_name VARCHAR(30) NOT NULL
 );
+
+CREATE TABLE feedback (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(100),
+    content TEXT,
+    username VARCHAR(50),
+    FOREIGN KEY (username) REFERENCES users (username)
+);

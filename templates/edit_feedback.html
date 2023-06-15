@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h1>Edit Feedback</h1>
+    <form action="/feedback/{{ feedback.id }}/update" method="post">
+        <label for="title">Title:</label><br>
+        <input type="text" id="title" name="title" value="{{ feedback.title }}" required><br>
+        <label for="content">Content:</label><br>
+        <textarea id="content" name="content" required>{{ feedback.content }}</textarea><br>
+        <button type="submit">Submit</button>
+    </form>
+{% endblock %}

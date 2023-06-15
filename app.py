@@ -4,8 +4,10 @@ from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import DataRequired, Length
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
-from models import db, connect_db, User
+from models import db, connect_db, User, Feedback
+# from . import app
 from functools import wraps
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql:///users_db'
@@ -132,6 +134,116 @@ def user_profile(username):
 
     # If the user is not logged in or the user does not exist, redirect to login
     return redirect('/login')
+
+
+
+
+# GET /users/<username>
+@app.route('/users/<username>')
+def show_user(username):
+    # Make sure only the logged-in user can view the page
+    if 'username' not in session or session['username'] != username:
+        return redirect('/login')  # Redirect to login page if not logged in or unauthorized
+
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        return render_template('error.html', message='User not found')
+
+    feedbacks = Feedback.query.filter_by(username=username).all()
+
+    return render_template('user.html', user=user, feedbacks=feedbacks)
+
+# POST /users/<username>/delete
+@app.route('/users/<username>/delete', methods=['POST'])
+def delete_user(username):
+    # Make sure only the logged-in user can delete their account
+    if 'username' not in session or session['username'] != username:
+        return redirect('/login')  # Redirect to login page if not logged in or unauthorized
+
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        return render_template('error.html', message='User not found')
+
+    # Delete all user's feedback
+    Feedback.query.filter_by(username=username).delete()
+
+    # Remove user from the database
+    db.session.delete(user)
+    db.session.commit()
+
+    session.clear()  # Clear user information from session
+    return redirect('/')
+
+# GET /users/<username>/feedback/add
+@app.route('/users/<username>/feedback/add', methods=['GET'])
+def add_feedback_form(username):
+    # Make sure only the logged-in user can see the form
+    if 'username' not in session or session['username'] != username:
+        return redirect('/login')  # Redirect to login page if not logged in or unauthorized
+
+    return render_template('add_feedback.html', username=username)
+
+# POST /users/<username>/feedback/add
+@app.route('/users/<username>/feedback/add', methods=['POST'])
+def add_feedback(username):
+    # Make sure only the logged-in user can add feedback
+    if 'username' not in session or session['username'] != username:
+        return redirect('/login')  # Redirect to login page if not logged in or unauthorized
+
+    title = request.form.get('title')
+    content = request.form.get('content')
+
+    feedback = Feedback(title=title, content=content, username=username)
+    db.session.add(feedback)
+    db.session.commit()
+
+    return redirect(f'/users/{username}')
+
+# GET /feedback/<feedback-id>/update
+@app.route('/feedback/<int:feedback_id>/update', methods=['GET'])
+def edit_feedback_form(feedback_id):
+    feedback = Feedback.query.get(feedback_id)
+
+    # Make sure only the user who has written the feedback can see the form
+    if feedback is None or ('username' not in session or session['username'] != feedback.username):
+        return render_template('error.html', message='Feedback not found')
+
+    return render_template('edit_feedback.html', feedback=feedback)
+
+# POST /feedback/<feedback-id>/update
+@app.route('/feedback/<int:feedback_id>/update', methods=['POST'])
+def edit_feedback(feedback_id):
+    feedback = Feedback.query.get(feedback_id)
+
+    # Make sure only the user who has written the feedback can update it
+    if feedback is None or ('username' not in session or session['username'] != feedback.username):
+        return render_template('error.html', message='Feedback not found')
+
+    title = request.form.get('title')
+    content = request.form.get('content')
+
+    feedback.title = title
+    feedback.content = content
+    db.session.commit()
+
+    return redirect(f'/users/{feedback.username}')
+
+# POST /feedback/<feedback-id>/delete
+@app.route('/feedback/<int:feedback_id>/delete', methods=['POST'])
+def delete_feedback(feedback_id):
+    feedback = Feedback.query.get(feedback_id)
+
+    # Make sure only the user who has written the feedback can delete it
+    if feedback is None or ('username' not in session or session['username'] != feedback.username):
+        return render_template('error.html', message='Feedback not found')
+
+    db.session.delete(feedback)
+    db.session.commit()
+
+    return redirect(f'/users/{feedback.username}')
+
+
+
 
     
 if __name__ == '__main__':

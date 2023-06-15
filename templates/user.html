@@ -1,10 +1,9 @@
 {% extends 'base.html' %}
 
 {% block content %}
-
-<h1>Welcome, {{ user.username }}!</h1>
+    <h1>User Profile: {{ user.username }}</h1>
     <h2>Feedbacks</h2>
-    {% for feedback in feedbacks %}
+    {% for feedback in user.feedbacks %}
         <div>
             <h3>{{ feedback.title }}</h3>
             <p>{{ feedback.content }}</p>
@@ -16,7 +15,6 @@
     {% endfor %}
     <h2>Add Feedback</h2>
     <a href="/users/{{ user.username }}/feedback/add">Add Feedback</a>
-    <form action="/logout" method="post" style="display: inline;">
-        <button type="submit">Logout</button>
+    <form action="/users/{{ user.username }}/delete" method="post" style="display: inline;">
     </form>
 {% endblock %}
