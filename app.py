@@ -41,6 +41,11 @@ def redirect_to_register():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegistrationForm()
+
+    if 'username' in session:
+        # User is already logged in, redirect to the user profile
+        return redirect(url_for('user_profile', username=session['username']))
+    
     if form.validate_on_submit():
         # Process form data and create a new user
         username = form.username.data
@@ -48,6 +53,18 @@ def register():
         email = form.email.data
         first_name = form.first_name.data
         last_name = form.last_name.data
+        
+        # Check if the email already exists in the database
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash('Username already exists. Please choose a different email.', 'error')
+            return redirect(url_for('register'))
+        
+        # Check if the email already exists in the database
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            flash('Email already exists. Please choose a different email.', 'error')
+            return redirect(url_for('register'))
         
         # Create a new User object
         new_user = User(
@@ -70,6 +87,12 @@ def register():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
+    
+    if 'username' in session:
+        # User is already logged in, redirect to the user profile
+        return redirect(url_for('user_profile', username=session['username']))
+   
+
     if form.validate_on_submit():
         # Process form data and authenticate user
         username = form.username.data
@@ -130,28 +153,12 @@ def user_profile(username):
         # Check if the user exists
         if user:
             # Render the user profile template and pass the user object
-            return render_template('profile.html', user=user)
+            feedbacks = Feedback.query.filter_by(username=username).all()
+            return render_template('user.html', user=user, feedbacks=feedbacks)
 
     # If the user is not logged in or the user does not exist, redirect to login
     return redirect('/login')
 
-
-
-
-# GET /users/<username>
-@app.route('/users/<username>')
-def show_user(username):
-    # Make sure only the logged-in user can view the page
-    if 'username' not in session or session['username'] != username:
-        return redirect('/login')  # Redirect to login page if not logged in or unauthorized
-
-    user = User.query.filter_by(username=username).first()
-    if user is None:
-        return render_template('error.html', message='User not found')
-
-    feedbacks = Feedback.query.filter_by(username=username).all()
-
-    return render_template('user.html', user=user, feedbacks=feedbacks)
 
 # POST /users/<username>/delete
 @app.route('/users/<username>/delete', methods=['POST'])
