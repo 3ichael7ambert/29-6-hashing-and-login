@@ -1,5 +1,9 @@
 # Hashing and Login
-
+ Run First
+ ```bash
+ psql < seed_users.sql
+ ```
+ 
 ```bash
 python -m venv venv
 source venv/bin/activate
